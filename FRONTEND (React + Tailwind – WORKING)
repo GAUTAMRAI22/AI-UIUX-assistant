@@ -161,3 +161,81 @@ Run Frontend
 cd frontend
 npm install
 npm run dev
+
+frontend/src/utils/api.js
+export async function analyzeDesign(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("http://localhost:8000/analyze-ui", {
+    method: "POST",
+    body: formData
+  });
+
+  return await res.json();
+}
+
+export async function generateLayout(prompt) {
+  const res = await fetch(
+    `http://localhost:8000/generate-layout?prompt=${encodeURIComponent(prompt)}`,
+    { method: "POST" }
+  );
+
+  return await res.json();
+}
+
+frontend/src/components/PromptGenerator.jsx
+import { useState } from "react";
+import { generateLayout } from "../utils/api";
+
+export default function PromptGenerator() {
+  const [prompt, setPrompt] = useState("");
+  const [layout, setLayout] = useState("");
+
+  const handleGenerate = async () => {
+    const res = await generateLayout(prompt);
+    setLayout(res.layout);
+  };
+
+  return (
+    <div className="max-w-xl mx-auto mt-12 bg-zinc-900 p-6 rounded-xl">
+      <h2 className="text-xl font-semibold mb-4">Generate UI Layout</h2>
+
+      <input
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Create a login page for a travel app"
+        className="w-full p-2 mb-4 bg-black text-white rounded"
+      />
+
+      <button
+        onClick={handleGenerate}
+        className="bg-white text-black px-4 py-2 rounded"
+      >
+        Generate Layout
+      </button>
+
+      {layout && (
+        <pre className="mt-4 text-sm text-gray-300 whitespace-pre-wrap">
+          {layout}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+frontend/src/pages/Home.jsx
+import Hero from "../components/Hero";
+import UploadCard from "../components/UploadCard";
+import PromptGenerator from "../components/PromptGenerator";
+
+export default function Home() {
+  return (
+    <div className="min-h-screen text-white">
+      <Hero />
+      <UploadCard />
+      <PromptGenerator />
+    </div>
+  );
+}
+
