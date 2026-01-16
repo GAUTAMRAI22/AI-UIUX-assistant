@@ -46,3 +46,101 @@ Run Backend
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
+
+backend/services/openai_service.py
+import os
+import base64
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def analyze_ui_image(image_bytes):
+    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analyze this UI design and give feedback on color, spacing, hierarchy, typography, and accessibility."},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{image_base64}"
+                        }
+                    }
+                ]
+            }
+        ]
+    )
+
+    return response.choices[0].message.content
+
+
+def generate_layout(prompt):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a senior UI/UX designer."
+            },
+            {
+                "role": "user",
+                "content": f"Create a UI layout idea for: {prompt}. Describe sections clearly."
+            }
+        ]
+    )
+
+    return response.choices[0].message.content
+
+
+backend/api/feedback.py
+from services.openai_service import analyze_ui_image
+
+async def analyze_ui(file):
+    image_bytes = await file.read()
+    feedback = analyze_ui_image(image_bytes)
+
+    return {
+        "success": True,
+        "feedback": feedback
+    }
+
+backend/api/layout.py
+from services.openai_service import generate_layout
+
+async def create_layout(prompt: str):
+    layout = generate_layout(prompt)
+
+    return {
+        "success": True,
+        "layout": layout
+    }
+
+backend/main.py
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from api.feedback import analyze_ui
+from api.layout import create_layout
+
+app = FastAPI(title="AI UI/UX Assistant")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/analyze-ui")
+async def analyze_design(file: UploadFile = File(...)):
+    return await analyze_ui(file)
+
+@app.post("/generate-layout")
+async def generate_ui_layout(prompt: str):
+    return await create_layout(prompt)
+
