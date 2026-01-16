@@ -1,0 +1,163 @@
+frontend/package.json
+{
+  "name": "ai-uiux-assistant",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "framer-motion": "^10.16.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
+  }
+}
+
+frontend/tailwind.config.js
+export default {
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {}
+  },
+  plugins: []
+};
+
+frontend/postcss.config.js
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+frontend/src/index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0b0b0b;
+}
+
+frontend/src/main.jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+frontend/src/App.jsx
+import Home from "./pages/Home";
+
+export default function App() {
+  return <Home />;
+}
+
+frontend/src/pages/Home.jsx
+import Hero from "../components/Hero";
+import UploadCard from "../components/UploadCard";
+
+export default function Home() {
+  return (
+    <div className="min-h-screen text-white">
+      <Hero />
+      <UploadCard />
+    </div>
+  );
+}
+
+frontend/src/components/Hero.jsx
+export default function Hero() {
+  return (
+    <div className="text-center py-20">
+      <h1 className="text-5xl font-bold mb-4">
+        AI UI/UX Assistant
+      </h1>
+      <p className="text-gray-400 max-w-xl mx-auto">
+        Upload your UI and get instant AI-powered design feedback.
+      </p>
+    </div>
+  );
+}
+
+frontend/src/components/UploadCard.jsx
+import { useState } from "react";
+import { analyzeDesign } from "../utils/api";
+import FeedbackPanel from "./FeedbackPanel";
+
+export default function UploadCard() {
+  const [file, setFile] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+
+  const handleUpload = async () => {
+    const result = await analyzeDesign(file);
+    setFeedback(result.feedback);
+  };
+
+  return (
+    <div className="max-w-md mx-auto bg-zinc-900 p-6 rounded-xl">
+      <input
+        type="file"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="mb-4"
+      />
+      <button
+        onClick={handleUpload}
+        className="bg-white text-black px-4 py-2 rounded"
+      >
+        Analyze UI
+      </button>
+
+      {feedback && <FeedbackPanel feedback={feedback} />}
+    </div>
+  );
+}
+
+
+frontend/src/components/FeedbackPanel.jsx
+export default function FeedbackPanel({ feedback }) {
+  return (
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold mb-2">AI Feedback</h2>
+      <ul className="space-y-2 text-gray-300">
+        {Object.entries(feedback).map(([key, value]) => (
+          <li key={key}>
+            <strong>{key}:</strong> {value}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+frontend/src/utils/api.js
+export async function analyzeDesign(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("http://localhost:8000/analyze", {
+    method: "POST",
+    body: formData
+  });
+
+  return await res.json();
+}
+
+Run Frontend
+cd frontend
+npm install
+npm run dev
